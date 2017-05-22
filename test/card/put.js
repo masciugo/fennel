@@ -37,24 +37,42 @@ var config = require('../../config').config;
 
 var username = config.test_user_name;
 var password = config.test_user_pwd;
+var faker = require('faker');
+
+function generateUUID() {
+    var d = new Date().getTime();
+    var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = (d + Math.random()*16)%16 | 0;
+        d = Math.floor(d/16);
+        return (c=='x' ? r : (r&0x3|0x8)).toString(16);
+    });
+    return uuid;
+}    
 
 test('Calling PUT on cards', function (t) {
 
     t.plan(1);
 
-    var payload = "BEGIN:VCARD\n\r";
-    payload += "VERSION:3.0\n\r";
-    payload += "PRODID:-//Apple Inc.//iOS 9.0.2//EN\n\r";
-    payload += "N:Www;Www;;;\n\r";
-    payload += "FN:Www Www\n\r";
-    payload += "ORG:company;\n\r";
-    payload += "REV:2015-10-16T13:00:28Z\n\r";
-    payload += "UID:E2D83EA7-9DA7-46F9-93EC-70F73BB1E4D1\n\r";
-    payload += "END:VCARD\n\r";
 
+
+setInterval(function(){
+    let uid=generateUUID();
+    let buid=generateUUID().replace('-','');
+    let surname=faker.name.lastName();;
+    let name=faker.name.firstName();;
+    let cell= faker.phone.phoneNumber();
+    payload  = `BEGIN:VCARD\n`;
+    payload += `VERSION:3.0\n`;
+    //payload += `PRODID:-//Apdfgdfgdfg.//dgdfgdfgdfg//EN\n`;
+    payload += `FN:${name} ${surname}\n`;
+    payload += `TEL;type=CELL;type=VOICE;type=pref:${cell}\n`;
+    payload += `REV:2017-04-06T12:40:55Z\n`;
+    payload += `FROMBXP:yes\n`;
+    payload += `UID:${uid}\n`;
+    payload += `END:VCARD\n`;
     var options = {
         method: 'PUT',
-        uri: "http://" + config.ip + ":" + config.port + "/card/" + username + "/default/7997A784-375D-4B42-8FAE-A9EAA3FB0DBF.vcf",
+        uri: "http://" + config.ip + ":" + config.port + "/card/" + username + "/default/"+uid+".vcf",
         auth: {
             'user': username,
             'pass': password,
@@ -73,4 +91,8 @@ test('Calling PUT on cards', function (t) {
             t.fail(error);
         }
     });
+
+}, 1000 * 10);
+
+
 });

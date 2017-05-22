@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "crossroads": "^0.12.2",
+    "faker": "^4.1.0",
     "htdigest": "^2.0.2",
     "htpasswd": "^2.1.2",
     "http-auth": "^2.1.9",
@@ -43,8 +44,8 @@
     "xml2js": "^0.4.9"
   },
   "devDependencies": {
-    "tape": "^4.0.1",
+    "faucet": "0.0.1",
     "request": "^2.65.0",
-    "faucet": "0.0.1"
+    "tape": "^4.0.1"
   }
 }
