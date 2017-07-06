@@ -178,6 +178,7 @@ crossroads.bypassed.add(onBypass);
 // start the server and process requests
 var server = http.createServer(basic, function (req, res)
 {
+    log.debug("============================================================================================================");
     log.debug("Method: " + req.method + ", URL: " + req.url);
 
     // will contain the whole body submitted
@@ -194,6 +195,7 @@ var server = http.createServer(basic, function (req, res)
 
         var sUrl = url.parse(req.url).pathname;
         log.debug("Request body: " + reqBody);
+        // debugger;
         crossroads.parse(sUrl, [comm]);
     });
 });
@@ -202,12 +204,14 @@ server.listen(config.port);
 
 server.on('error', function (e)
 {
+    debugger;
     log.warn('Caught error: ' + e.message);
     log.debug(e.stack);
 });
 
 process.on('uncaughtException', function(err)
 {
+    debugger;
     log.warn('Caught exception: ' + err.message);
     log.debug(err.stack);
 });

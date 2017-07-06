@@ -45,11 +45,12 @@ var config =
 
     // db specific configuration. you can use whatever sequelize supports.
     db_name: 'fennel',
-    db_uid: 'postgres',
-    db_pwd: 'postgres',
+    db_uid: 'fennel',
+    db_host: 'postgres_for_fennel',
+    db_pwd: 'fennel',
+    db_port: 5432,
     db_dialect: 'postgres',
     db_logging: true,
-    // db_storage: 'fennel.sqlite',
 
     // Authentication
     // Authentication methods so far: courier, htaccess, ldap
@@ -85,7 +86,7 @@ var config =
         'p:$username:*'
     ],
 
-    test_user_name: 'demo',
+    test_user_name: '0000583032',
     test_user_pwd: 'demo'
 };
 
