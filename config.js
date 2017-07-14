@@ -86,8 +86,15 @@ var config =
         'p:$username:*'
     ],
 
-    test_user_name: '0000583032',
-    test_user_pwd: 'demo'
+    test_user_name: 'demo',
+    test_user_pwd: 'demo',
+
+    encryption: {
+        disable: process.env.NODE_ENV === 'development',
+        key: process.env.VCARD_ENCRYPTION_KEY || 'ZqVyd20c0tyg2UjoT/ZqVyd20c0tyg2U'
+    }
+
+
 };
 
 // Exporting.

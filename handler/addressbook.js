@@ -11,6 +11,7 @@
 var xml = require("libxmljs");
 var xh = require("../libs/xmlhelper");
 var log = require('../libs/log').log;
+var etabeta = require('../libs/encryption');
 var VCARD = require('../libs/db').VCARD;
 var ADB = require('../libs/db').ADB;
 
@@ -428,7 +429,7 @@ function gett(comm)
         {
             var res = comm.getRes();
 
-            var content = vcard.content;
+            var content = etabeta.decrypt(vcard.content);
             //content = content.replace(/\r\n|\r|\n/g,'&#13;\r\n');
 
             comm.appendResBody(content);
@@ -460,9 +461,9 @@ function put(comm)
     // if not, lets create it, otherwise let's return its values...
     ADB.find({ where: {ownerId: username, name: adbName} }).then(function(adb)
     {
-        var defaults = {
+            var defaults = {
             addressbookId: adb.pkey,
-            content: body,
+            content: etabeta.encrypt(body),
             ownerId: comm.getUser().getUserName(),
             is_group: isGroup
         };
@@ -477,7 +478,7 @@ function put(comm)
                 }
                 else
                 {
-                    vcard.content = comm.getReqBody();
+                    vcard.content = etabeta.encrypt(comm.getReqBody());
                     vcard.is_group = isGroup;
                     log.debug('Loaded VCARD: ' + JSON.stringify(vcard, null, 4));
                 }
@@ -711,7 +712,7 @@ function handleReportHrefs(comm, arrVCARDIds)
 
             var date = Date.parse(vcard.updatedAt);
 
-            var content = vcard.content;
+            var content = etabeta.decrypt(vcard.content);
             content = content.replace(/&/g,'&amp;');
             content = content.replace(/\r\n|\r|\n/g,'&#13;\r\n');
 

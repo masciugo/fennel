@@ -204,17 +204,17 @@ server.listen(config.port);
 
 server.on('error', function (e)
 {
-    debugger;
     log.warn('Caught error: ' + e.message);
     log.debug(e.stack);
 });
 
 process.on('uncaughtException', function(err)
 {
-    debugger;
     log.warn('Caught exception: ' + err.message);
     log.debug(err.stack);
 });
 
+log.info("Current env: " + JSON.stringify(process.env));
+log.info("Current config: " + JSON.stringify(config));
 // Put a friendly message on the terminal
 log.info("Server running at http://" + config.ip + ":" + config.port + "/");
