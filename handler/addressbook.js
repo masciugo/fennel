@@ -343,24 +343,24 @@ function returnPropfindProps(comm, nodes, adb, rsVCARD)
 
 function del(comm)
 {
-    /*
-    log.debug("calendar.delete called");
+    log.debug("addressbook.delete called");
 
-    var res = comm.getRes();
+    comm.setHeader("Content-Type", "text/html");
+    comm.setHeader("Server", "Fennel");
 
-    res.setHeader("Content-Type", "text/html");
-    res.setHeader("Server", "Fennel");
+    comm.setResponseCode(204);
 
-    res.writeHead(204);
-
+    log.debug(comm.getURLAsArray());
+    log.debug(comm.getUrlElementSize());
+    
     var isRoot = true;
 
-    // if URL element size === 4, this is a call for the root URL of a user.
-    // TODO: check if the current user is the user requesting the resource (ACL)
+    // // if URL element size === 4, this is a call for the root URL of a user.
+    // // TODO: check if the current user is the user requesting the resource (ACL)
     if(comm.getUrlElementSize() > 4)
     {
         var lastPathElement = comm.getFilenameFromPath(false);
-        if(comm.stringEndsWith(lastPathElement, '.ics'))
+        if(comm.stringEndsWith(lastPathElement, '.vcf'))
         {
             isRoot = false;
         }
@@ -368,19 +368,19 @@ function del(comm)
 
     if(isRoot === true)
     {
-        var calendarId = comm.getPathElement(3);
+        var addressbookId = comm.getPathElement(3);
 
-        CAL.find({ where: {pkey: calendarId} }).then(function(cal)
+        ADB.find({ where: {pkey: addressbookId} }).then(function(adb)
         {
-            if(cal === null)
+            if(adb === null)
             {
-                log.warn('err: could not find calendar');
+                log.warn('err: could not find addressbook');
             }
             else
             {
-                cal.destroy().then(function()
+                adb.destroy().then(function()
                 {
-                    log.debug('calendar deleted');
+                    log.debug('addressbook deleted');
                 })
             }
 
@@ -389,31 +389,30 @@ function del(comm)
     }
     else
     {
-        var ics_id = comm.getFilenameFromPath(true);
+        var vcardId = comm.getFilenameFromPath(true);
 
-        ICS.find( { where: {pkey: ics_id}}).then(function(ics)
+        VCARD.find( { where: {pkey: vcardId}}).then(function(vcard)
         {
-            if(ics === null)
+            if(vcard === null)
             {
-                log.warn('err: could not find ics');
+                log.warn('err: could not find vcard');
             }
             else
             {
-                ics.destroy().then(function()
+                vcard.destroy().then(function()
                 {
-                    log.debug('ics deleted');
+                    log.debug('vcard deleted');
                 })
             }
 
             comm.flushResponse();
         });
     }
-*/
 }
 
 function gett(comm)
 {
-    log.debug("calendar.get called");
+    log.debug("addressbook.get called");
 
     var res = comm.getRes();
     res.setHeader("Content-Type", "text/vcard; charset=utf-8");
