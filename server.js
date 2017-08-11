@@ -28,6 +28,7 @@
  ** $Id:
  **
 -----------------------------------------------------------------------------*/
+require('dotenv').config();
 var config = require('./config').config;
 var authlib = require('./libs/authentication');
 var http = require('http');

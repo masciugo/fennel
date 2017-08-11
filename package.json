@@ -27,7 +27,9 @@
     "url": "https://github.com/LordEidi/fennel.git"
   },
   "dependencies": {
+    "aws-sdk": "^2.95.0",
     "crossroads": "^0.12.2",
+    "dotenv": "^4.0.0",
     "faker": "^4.1.0",
     "htdigest": "^2.0.2",
     "htpasswd": "^2.1.2",
