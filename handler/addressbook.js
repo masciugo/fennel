@@ -11,7 +11,7 @@
 var xml = require("libxmljs");
 var xh = require("../libs/xmlhelper");
 var log = require('../libs/log').log;
-var etabeta = require('../libs/encryption');
+var etabeta = require('../libs/kms-encryption');
 var VCARD = require('../libs/db').VCARD;
 var ADB = require('../libs/db').ADB;
 
@@ -424,18 +424,18 @@ function gett(comm)
         if(vcard === null)
         {
             log.warn('err: could not find vcard');
+            comm.flushResponse();
         }
         else
         {
             var res = comm.getRes();
 
-            var content = etabeta.decrypt(vcard.content);
-            //content = content.replace(/\r\n|\r|\n/g,'&#13;\r\n');
-
-            comm.appendResBody(content);
+            var content = etabeta.decrypt(vcard.content).then(function(decryptedContent) {
+                comm.appendResBody(decryptedContent);
+                comm.flushResponse();
+            })
         }
 
-        comm.flushResponse();
     });
 }
 
@@ -460,57 +460,64 @@ function put(comm)
     // check out if we already have a record for the default addressbook
     // if not, lets create it, otherwise let's return its values...
     ADB.find({ where: {ownerId: username, name: adbName} }).then(function(adb)
-    {
+        {
             var defaults = {
-            addressbookId: adb.pkey,
-            content: etabeta.encrypt(body),
-            ownerId: comm.getUser().getUserName(),
-            is_group: isGroup
-        };
+                addressbookId: adb.pkey,
+                ownerId: comm.getUser().getUserName(),
+                is_group: isGroup
+            }
 
-        // check out if we already have a record for the default addressbook
-        // if not, lets create it, otherwise let's return its values...
-        VCARD.findOrCreate({where: { pkey: vcardId },  defaults: defaults }).spread(function(vcard, created)
-            {
-                if(created)
-                {
-                    log.debug('Created VCARD: ' + JSON.stringify(vcard, null, 4));
-                }
-                else
-                {
-                    vcard.content = etabeta.encrypt(comm.getReqBody());
-                    vcard.is_group = isGroup;
-                    log.debug('Loaded VCARD: ' + JSON.stringify(vcard, null, 4));
-                }
+            // encrypt content to go on
+            etabeta.encrypt(body).then(function(encryptedBody) {
+              defaults.content = encryptedBody;
 
-                vcard.save().then(function()
-                {
-                    log.info('vcard updated');
+              // check out if we already have a record for the default addressbook
+              // if not, lets create it, otherwise let's return its values...
+              VCARD.findOrCreate({where: { pkey: vcardId },  defaults: defaults }).spread(function(vcard, created)
+                  {
+                      if(created)
+                      {
+                          log.debug('Created VCARD: ' + JSON.stringify(vcard, null, 4));
+                      }
+                      else
+                      {
+                          vcard.content = encryptedBody;
+                          vcard.is_group = isGroup;
+                          log.debug('Loaded VCARD: ' + JSON.stringify(vcard, null, 4));
+                      }
 
-                    // update addressbook collection
-                    /*
-                    ADB.find({ where: {pkey: addressbookId} } ).then(function(cal)
-                    {
-                        if(cal !== null && cal !== undefined)
-                        {
-                            cal.increment('synctoken', { by: 1 }).then(function()
-                            {
-                                log.info('synctoken on cal updated');
-                            });
-                        }
-                    });
-                    */
-                });
-            });
-    });
+                      vcard.save().then(function()
+                      {
+                          log.info('vcard updated');
 
-    comm.setStandardHeaders();
+                          comm.setStandardHeaders();
 
-    var date = new Date();
-    comm.setHeader("ETag", Number(date));
+                          var date = new Date();
+                          comm.setHeader("ETag", Number(date));
 
-    comm.setResponseCode(201);
-    comm.flushResponse();
+                          comm.setResponseCode(200);
+                          comm.flushResponse();
+
+                          // update addressbook collection
+                          /*
+                          ADB.find({ where: {pkey: addressbookId} } ).then(function(cal)
+                          {
+                              if(cal !== null && cal !== undefined)
+                              {
+                                  cal.increment('synctoken', { by: 1 }).then(function()
+                                  {
+                                      log.info('synctoken on cal updated');
+                                  });
+                              }
+                          });
+                          */
+                      });
+                  });
+
+            })
+
+        });
+
 }
 
 function move(comm)
@@ -705,31 +712,38 @@ function handleReportHrefs(comm, arrVCARDIds)
     VCARD.findAndCountAll( { where: {pkey: arrVCARDIds}}).then(function(result)
     {
         var response = "";
+        var decriptedContents = [];
 
-        for (var i=0; i < result.count; ++i)
-        {
-            var vcard = result.rows[i];
+        decriptedContentPromises = result.map( (vcard) => etabeta.decrypt(vcard.content));
+        Promise.all(decriptedContentPromises).then( (decriptedContents) => {
+            
+            for (var i=0; i < result.count; ++i)
+            {
+                var vcard = decriptedContents[i];
 
-            var date = Date.parse(vcard.updatedAt);
+                var date = Date.parse(vcard.updatedAt);
 
-            var content = etabeta.decrypt(vcard.content);
-            content = content.replace(/&/g,'&amp;');
-            content = content.replace(/\r\n|\r|\n/g,'&#13;\r\n');
+                var content = etabeta.decrypt(vcard.content);
+                content = content.replace(/&/g,'&amp;');
+                content = content.replace(/\r\n|\r|\n/g,'&#13;\r\n');
 
-            response += "<d:response>";
-            response += "<d:href>" + comm.getURL() + vcard.pkey + ".vcf</d:href>";
-            response += "<d:propstat><d:prop>";
-            response += "<card:address-data>" + content + "</card:address-data>";
-            response += "<d:getetag>\"" + Number(date) + "\"</d:getetag>";
-            response += "</d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat>";
-            response += "</d:response>";
-        }
+                response += "<d:response>";
+                response += "<d:href>" + comm.getURL() + vcard.pkey + ".vcf</d:href>";
+                response += "<d:propstat><d:prop>";
+                response += "<card:address-data>" + content + "</card:address-data>";
+                response += "<d:getetag>\"" + Number(date) + "\"</d:getetag>";
+                response += "</d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat>";
+                response += "</d:response>";
+            }
 
-        comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\" >\r\n");
-        comm.appendResBody(response);
-        comm.appendResBody("</d:multistatus>\r\n");
+            comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\" >\r\n");
+            comm.appendResBody(response);
+            comm.appendResBody("</d:multistatus>\r\n");
 
-        comm.flushResponse();
+            comm.flushResponse();
+        });
+
+
     });
 }
 
