@@ -1,8 +1,7 @@
-require('dotenv').config();
-const etabeta = require('./libs/kms-encryption');
+require('dotenv').config({path: '../.env'});
+const etabeta = require('../libs/kms-encryption');
 
-
-etabeta.encrypt('ciccio pasticcio').then(function(res) {
+etabeta.encrypt('plain sample text').then(function(res) {
   console.log(res);
   etabeta.decrypt(res).then(function(res) {
     console.log(res);
