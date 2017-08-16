@@ -4,5 +4,4 @@
 utils/*
 .DS_Store
 node_modules
-postgres-data
 .env

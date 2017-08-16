@@ -1,6 +1,7 @@
-FROM node:6.7
+FROM node:boron
 ADD . /fennel
-RUN apt-get update && apt-get install -y sqlite nano vim postgresql-client logrotate && npm i -g forever && cd /fennel && npm i
+RUN apt-get update && apt-get install -y sqlite nano vim postgresql-client logrotate 
+RUN cd /fennel && yarn
 WORKDIR /fennel
 
-CMD forever -o /var/log/fennel.log -e /var/log/fennel.err server.js
+CMD node server.js

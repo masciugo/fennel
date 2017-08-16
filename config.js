@@ -45,12 +45,12 @@ var config =
 
     // db specific configuration. you can use whatever sequelize supports.
     db_name: 'fennel',
-    db_uid: 'fennel',
-    db_host: 'postgres_for_fennel',
-    db_pwd: 'fennel',
-    db_port: 5432,
+    db_uid: process.env.POSTGRES_USERNAME,
+    db_pwd: process.env.POSTGRES_PASSWORD,
     db_dialect: 'postgres',
     db_logging: true,
+    db_host: process.env.POSTGRES_HOST,
+    db_port: process.env.POSTGRES_PORT,
 
     // Authentication
     // Authentication methods so far: courier, htaccess, ldap
@@ -88,12 +88,6 @@ var config =
 
     test_user_name: 'demo',
     test_user_pwd: 'demo',
-
-    encryption: {
-        disable: process.env.NODE_ENV === 'development',
-        key: process.env.VCARD_ENCRYPTION_KEY || 'ZqVyd20c0tyg2UjoT/ZqVyd20c0tyg2U'
-    }
-
 
 };
 
