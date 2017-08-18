@@ -32,6 +32,10 @@ function checkLogin(basicAuth, username, password, callback)
             checkLDAP(username, password, callback);
             break;
 
+        case 'uniquser':
+            checkUniquser(basicAuth, password, callback);
+            break;
+
         default:
             log.info("No authentication method defined. Denying access.");
             callback(false);
@@ -39,14 +43,25 @@ function checkLogin(basicAuth, username, password, callback)
     }
 }
 
+function checkUniquser(basicAuth, password, callback)
+{
+    log.debug("Authenticating user with uniquser method.");
+
+    if(basicAuth.validate(process.env.UNIQUSER_PASSWORD, password))
+    {
+        log.info("Uniquser logged in.");
+        callback(true);
+        return;
+    }
+    log.warn("Uniquser could not be logged in. Wrong password!");
+    callback(false);
+}
+
 function checkHtaccess(basicAuth, username, password, callback)
 {
     log.debug("Authenticating user with htaccess method.");
     // log.debug(basicAuth, username, password);
 
-    callback(true);
-    return;
-    
     var fHTAccess = path.resolve('.', config.auth_method_htaccess_file);
 
     if(!fs.existsSync(fHTAccess))

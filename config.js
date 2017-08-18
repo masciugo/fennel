@@ -53,14 +53,15 @@ var config =
     db_port: process.env.POSTGRES_PORT,
 
     // Authentication
-    // Authentication methods so far: courier, htaccess, ldap
-    auth_method: 'htaccess',
-    auth_method_courier_socket: '/var/run/courier/authdaemon/socket',
-    auth_method_htaccess_file: 'demouser.htaccess',
+    // Authentication methods so far: courier, htaccess, ldap, uniquser
+    auth_method: 'uniquser',
+    uniquser_password: process.env.UNIQUSER_PASSWORD,
+    // auth_method_courier_socket: '/var/run/courier/authdaemon/socket',
+    // auth_method_htaccess_file: 'uniquser.htaccess',
 
     // ldap authentication requires the ldapjs@1.0.0 node module. Please install manually
-    auth_method_ldap_url: 'ldap://localhost:3002',
-    auth_method_ldap_user_base_dn: 'ou=users,dc=example',
+    // auth_method_ldap_url: 'ldap://localhost:3002',
+    // auth_method_ldap_user_base_dn: 'ou=users,dc=example',
 
 
     // Authorisation
