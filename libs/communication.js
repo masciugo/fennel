@@ -108,7 +108,7 @@ comm.prototype.flushResponse = function()
         response = pd.xml(this.resBody);
     }
 
-    log.debug("Returning response: " + response);
+    // log.debug("Returning response: " + response);
     this.res.write(response);
     this.res.end();
 };

@@ -179,9 +179,8 @@ crossroads.bypassed.add(onBypass);
 // start the server and process requests
 var server = http.createServer(basic, function (req, res)
 {
-    log.debug("============================================================================================================");
-    log.debug("Method: " + req.method + ", URL: " + req.url);
-
+    log.debug(`============ ${req.method} ${req.url}`);
+    
     // will contain the whole body submitted
 	var reqBody = "";
 
@@ -195,8 +194,7 @@ var server = http.createServer(basic, function (req, res)
         var comm = new communication(req, res, reqBody);
 
         var sUrl = url.parse(req.url).pathname;
-        log.debug("Request body: " + reqBody);
-        // debugger;
+        // log.debug("Request body: " + reqBody);
         crossroads.parse(sUrl, [comm]);
     });
 });
