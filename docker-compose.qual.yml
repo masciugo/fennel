@@ -1,0 +1,20 @@
+version: '3'
+services:
+  carddav:
+    build: 
+      context: .
+    ports:
+      - "80:8888"
+    volumes:
+      - /fennel/node_modules # trick to prevent node_modules from being added with all the rest of source code: it needs to be built in the docker for platform dependencies 
+      - .env.qual:/fennel/.env # rename .env 
+    image: dockerhub.valentino.ws/spindox/contactability/carddav:latest_qual
+  sync:
+    build:
+      context: ../sync
+    depends_on:
+      - carddav
+    volumes:
+     - /sync/node_modules # trick to prevent node_modules from being added with all the rest of source code: it needs to be built in the docker for platform dependencies 
+     - ../sync/.env.qual:/sync/.env # rename .env
+    image: dockerhub.valentino.ws/spindox/contactability/sync:latest_qual

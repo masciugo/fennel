@@ -1,27 +1,35 @@
 version: '3'
-volumes:
-  node_modules:
 services:
   db:
-    image: postgres
+    image: postgres # this container use an already available image: nothing to build
     ports:
-     - "5433:5432"
+     - "5433:5432" # expose db for inspection from docker host
     volumes: 
-      - ../postgres-data:/var/lib/postgresql/data
+      - ../postgres-data:/var/lib/postgresql/data # to persist db data among different builds 
     environment:
+      - POSTGRES_DATABASE=fennel
       - POSTGRES_USER=fennel
       - POSTGRES_PASSWORD=fennel
       - POSTGRES_DB=fennel
   carddav:
-    env_file:
-      - .env
     build: 
       context: .
     ports:
-     - "8888:8888"
+      - "8888:8888" # expose server for testing from docker host
     depends_on:
       - db
     volumes:
-     - .:/fennel
-     - node_modules:/fennel/node_modules
-    image: fennel_valentino:latest_dev
+      - .:/fennel
+      - /fennel/node_modules # trick to prevent node_modules from being added with all the rest of source code: it needs to be built in the docker for platform dependencies 
+      - .env.dev:/fennel/.env # rename .env
+    image: contactability.carddav:latest_dev
+  sync:
+    build:
+      context: ../sync
+    depends_on:
+      - carddav
+    volumes:
+      - ../sync:/sync
+      - /sync/node_modules # trick to prevent node_modules from being added with all the rest of source code: it needs to be built in the docker for platform dependencies 
+      - ../sync/.env.dev:/sync/.env # rename .env
+    image: contactability.sync:latest_dev

@@ -44,7 +44,7 @@ var config =
     //ip: '0.0.0.0',
 
     // db specific configuration. you can use whatever sequelize supports.
-    db_name: 'fennel',
+    db_name: process.env.POSTGRES_DATABASE,
     db_uid: process.env.POSTGRES_USERNAME,
     db_pwd: process.env.POSTGRES_PASSWORD,
     db_dialect: 'postgres',
