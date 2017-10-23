@@ -15,6 +15,9 @@ var etabeta = require('../libs/kms-encryption');
 var VCARD = require('../libs/db').VCARD;
 var ADB = require('../libs/db').ADB;
 
+const AWS = require('aws-sdk');
+const kms = new AWS.KMS({accessKeyId: process.env.AWS_ACCESSKEYID, secretAccessKey: process.env.AWS_SECRETACCESSKEY, region: process.env.AWS_REGION});
+	
 // Exporting.
 module.exports = {
     propfind: propfind,
@@ -411,6 +414,31 @@ function del(comm)
     }
 }
 
+function escape(str) {
+	  return str.replace(/[\s\S]/g, function(character) {
+//		    return character.charCodeAt()<32?'':character.charCodeAt()<128?character:'\\x' + ('0' + character.charCodeAt().toString(16));
+		    return character.charCodeAt()<32?'':character;
+	  });
+	}
+function clear(card,str){	
+    var cleared=str.split(/\r\n|\r|\n/);
+	str='';
+	for (var i=0;i<cleared.length;i++){
+		if (cleared[i].indexOf(":")<0)
+			;
+		else if (cleared[i].indexOf("UID:")>=0){
+			str=str.replace(/UID:/g,"UID:"+card.ownerId+"_");	
+		}	
+		else {
+			str+=escape(cleared[i])+'\r\n';
+		}
+				
+	}
+	str = str.replace(/&/g,'&amp;');
+	str = str.replace(/\r\n|\r|\n/g,'&#13;\r\n');
+    return str;
+}
+
 function gett(comm)
 {
     log.debug("addressbook.get called");
@@ -428,12 +456,13 @@ function gett(comm)
         }
         else
         {
-            var res = comm.getRes();
-
+            var content = vcard.content;
             var content = etabeta.decrypt(vcard.content).then(function(decryptedContent) {
-                comm.appendResBody(decryptedContent);
+            		decryptedContent=clear(vcard,decryptedContent);
+           		comm.appendResBody(decryptedContent);
                 comm.flushResponse();
-            })
+           	
+             })
         }
 
     });
@@ -707,30 +736,75 @@ function parseHrefToVCARDId(href)
     return id.substr(0, id.length - 4);
 }
 
+function handleReportHrefs_old(comm, arrVCARDIds)
+{
+    VCARD.findAndCountAll( { where: {pkey: arrVCARDIds}}).then(function(result)
+    {
+        var response = "";
+
+        for (var i=0; i < result.count; ++i)
+        {
+            var vcard = result.rows[i];
+
+            var date = Date.parse(vcard.updatedAt);
+
+            var content = vcard.content;
+            content = content.replace(/&/g,'&amp;');
+            content = content.replace(/\r\n|\r|\n/g,'&#13;\r\n');
+            content = content.replace(/UID:/g,"UID:"+vcard.ownerId+"_");
+            console.log("replaced");
+            response += "<d:response>";
+            response += "<d:href>" + comm.getURL() + vcard.pkey + ".vcf</d:href>";
+            response += "<d:propstat><d:prop>";
+            response += "<card:address-data>" + content + "</card:address-data>";
+            response += "<d:getetag>\"" + Number(date) + "\"</d:getetag>";
+            response += "</d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat>";
+            response += "</d:response>";
+        }
+
+        comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\" >\r\n");
+        comm.appendResBody(response);
+        comm.appendResBody("</d:multistatus>\r\n");
+
+        comm.flushResponse();
+    });
+}
+
+
 function handleReportHrefs(comm, arrVCARDIds)
 {
     VCARD.findAndCountAll( { where: {pkey: arrVCARDIds}}).then(function(result)
     {
         var response = "";
         var decriptedContents = [];
-
-        decriptedContentPromises = result.map( (vcard) => etabeta.decrypt(vcard.content));
+        
+        var decriptedContentPromises = result.rows.map( (vcard) =>  {
+      	  return new Promise(function (fulfill, reject){
+      	    kms.decrypt({CiphertextBlob: Buffer.from(vcard.content, 'base64')}, function(err, data) {
+      	      if (err) 
+      	    	    reject(err);
+      	      else {
+      	    	  	  vcard.content=new Buffer(data.Plaintext, 'base64').toString('ascii')
+      		    	  fulfill(vcard);
+      	      }
+      	    	     
+      	    });
+      	  });
+      	});
         Promise.all(decriptedContentPromises).then( (decriptedContents) => {
-            
-            for (var i=0; i < result.count; ++i)
+//Doom    		console.log("Elements: "+decriptedContents.length);
+//Doom    		console.log("Count: "+result.count);
+             for (var i=0; i < decriptedContents.length; ++i)
             {
-                var vcard = decriptedContents[i];
-
-                var date = Date.parse(vcard.updatedAt);
-
-                var content = etabeta.decrypt(vcard.content);
-                content = content.replace(/&/g,'&amp;');
-                content = content.replace(/\r\n|\r|\n/g,'&#13;\r\n');
-
+            	   let vcard = decriptedContents[i];
+                let date = Date.parse(vcard.updatedAt);
+                vcard.content=clear(vcard, vcard.content);
+                
+ 
                 response += "<d:response>";
                 response += "<d:href>" + comm.getURL() + vcard.pkey + ".vcf</d:href>";
                 response += "<d:propstat><d:prop>";
-                response += "<card:address-data>" + content + "</card:address-data>";
+                response += "<card:address-data>" + vcard.content + "</card:address-data>";
                 response += "<d:getetag>\"" + Number(date) + "\"</d:getetag>";
                 response += "</d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat>";
                 response += "</d:response>";
@@ -741,9 +815,9 @@ function handleReportHrefs(comm, arrVCARDIds)
             comm.appendResBody("</d:multistatus>\r\n");
 
             comm.flushResponse();
+        }, reason => {
+          console.error(reason)
         });
-
-
     });
 }
 
@@ -897,3 +971,19 @@ function proppatch(comm)
     }
     */
 }
+//function mock(card){
+//let surname='cambrea';
+//let name='domenico';
+//let cell= '3492359933';
+//let uid=card.pkey;
+//let payload='';
+//payload  = `BEGIN:VCARD\n`;
+//payload += `VERSION:3.0\n`;
+//payload += `FN:${name} ${surname}\n`;
+//payload += `TEL;type=CELL;type=VOICE;type=pref:${cell}\n`;
+//payload += `REV:2017-04-06T12:40:55Z\n`;
+//payload += `FROMBXP:yes\n`;
+//payload += `UID:${uid}\n`;
+//payload += `END:VCARD\n`;
+//return payload;
+//}
