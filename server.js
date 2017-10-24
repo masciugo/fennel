@@ -29,6 +29,7 @@
  **
 -----------------------------------------------------------------------------*/
 require('dotenv').config();
+if (process.env['NODE_ENV'] === 'production') {require('newrelic')} 
 var config = require('./config').config;
 var authlib = require('./libs/authentication');
 var http = require('http');
